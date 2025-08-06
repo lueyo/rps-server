@@ -3,13 +3,20 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import json
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 from models.room import Room
 from services.game_service import GameService
 from models.player import Player
 
 app = FastAPI()
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 # Initialize game service
 game_service = GameService()
 
