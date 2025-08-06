@@ -1,5 +1,5 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 import json
@@ -29,7 +29,9 @@ async def get():
    #Serve the main game page.
     #html_content = Path("templates/index.html").read_text()
     #return HTMLResponse(content=html_content)
-    return "Not implemented"
+    return RedirectResponse(url="https://rps.lueyo.es")
+
+
 
 
 @app.get("/room/{room_id}")
