@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Piedra, Papel o Tijeras</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section label {
+            display: block;
+            margin-bottom: 10px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .input-section input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-section input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .game-area {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .choices {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .choice-btn {
+            background: white;
+            border: 3px solid #667eea;
+            color: #667eea;
+            padding: 20px 30px;
+            border-radius: 12px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .choice-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .choice-btn:disabled {
+            background: #ccc;
+            border-color: #ccc;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            display: none;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 8px;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .success {
+            color: #28a745;
+            background: #d4edda;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Piedra, Papel o Tijeras</h1>
+        <div class="input-section">
+            <label for="username">Nombre de usuario:</label>
+            <input type="text" id="username" placeholder="Escribe tu nombre" value="guest" />
+            <button class="btn" id="joinBtn">Unirse a la sala</button>
+        </div>
+        <div class="game-area" id="gameArea">
+            <div class="status" id="status">Conectando...</div>
+            <div class="choices" id="choices" style="display:none;">
+                <button class="choice-btn" data-choice="rock">Piedra</button>
+                <button class="choice-btn" data-choice="paper">Papel</button>
+                <button class="choice-btn" data-choice="scissors">Tijeras</button>
+            </div>
+            <div class="results" id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const joinBtn = document.getElementById('joinBtn');
+        const usernameInput = document.getElementById('username');
+        const gameArea = document.getElementById('gameArea');
+        const statusDiv = document.getElementById('status');
+        const choicesDiv = document.getElementById('choices');
+        const resultsDiv = document.getElementById('results');
+
+        joinBtn.addEventListener('click', () => {
+            const username = usernameInput.value.trim() || 'guest';
+            const roomId = 'default'; // Could be dynamic or user input
+            connectWebSocket(roomId, username);
+        });
+
+        function connectWebSocket(roomId, username) {
+            ws = new WebSocket(`ws://${window.location.host}/ws/${roomId}?username=${username}`);
+
+            ws.onopen = () => {
+                gameArea.style.display = 'block';
+                statusDiv.textContent = '¡Conectado! Esperando a otro jugador...';
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleMessage(data);
+            };
+
+            ws.onclose = () => {
+                statusDiv.textContent = 'Desconectado del servidor';
+                choicesDiv.style.display = 'none';
+            };
+        }
+
+        function handleMessage(data) {
+            switch (data.type) {
+                case 'player_joined':
+                    statusDiv.textContent = `Jugador ${data.username} se unió. Jugadores totales: ${data.player_count}`;
+                    if (data.player_count === 2) {
+                        choicesDiv.style.display = 'flex';
+                        statusDiv.textContent = '¡El juego comienza! Haz tu elección.';
+                    }
+                    break;
+                case 'game_start':
+                    choicesDiv.style.display = 'flex';
+                    statusDiv.textContent = '¡El juego comenzó! Haz tu elección.';
+                    break;
+                case 'choice_made':
+                    statusDiv.textContent = `Elegiste ${data.choice}`;
+                    choicesDiv.style.display = 'none';
+                    break;
+                case 'round_result':
+                    let resultText = '';
+                    if (data.winner === 'tie') {
+                        resultText = '¡Empate!';
+                    } else {
+                        resultText = `${data.winner} gana!`;
+                    }
+                    resultsDiv.innerHTML = `
+                        <h3>Resultado de la ronda</h3>
+                        <p>${resultText}</p>
+                        <p>Elecciones: ${JSON.stringify(data.choices)}</p>
+                    `;
+                    resultsDiv.style.display = 'block';
+                    choicesDiv.style.display = 'flex';
+                    statusDiv.textContent = '¡Siguiente ronda! Haz tu elección.';
+                    break;
+                case 'error':
+                    statusDiv.textContent = `Error: ${data.message}`;
+                    choicesDiv.style.display = 'none';
+                    break;
+                case 'player_left':
+                    statusDiv.textContent = data.message;
+                    choicesDiv.style.display = 'none';
+                    resultsDiv.style.display = 'none';
+                    break;
+                case 'waiting_for_player':
+                    statusDiv.textContent = 'Esperando a otro jugador...';
+                    choicesDiv.style.display = 'none';
+                    resultsDiv.style.display = 'none';
+                    break;
+            }
+        }
+
+        document.querySelectorAll('.choice-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                const choice = button.getAttribute('data-choice');
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'choice', choice }));
+                    choicesDiv.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
